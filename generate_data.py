@@ -13,7 +13,12 @@ from dataset_new import Dataset
 import random
 
 #Carregar dados do mnist
-args = {'dataset_folder':r'C:\Users\anaco\Desktop\SAVI\datasets\mnist','percentage_examples': 1.0} #carregar 100% dos dados
+args = {'dataset_folder': './data', 'percentage_examples': 1.0} #carregar 100% dos dados
+#MUDADO TINHAS UM ARGUMENTO DO TEU PC
+
+# Define quantas imagens queres gerar
+NUM_TRAIN = 5000
+NUM_TEST = 1000
 
 print("A carregar dígitos originais...")
 
@@ -59,7 +64,7 @@ f_labels2D = open(labels_path2D, 'w')
 #guardar num dataset novo versão a train
 #Criar ciclo para 1000 imagens de teste 
 #labels_path = os.path.join(ds_A, 'train', 'labels.txt') #criar ficheiro para labels
-for i in range(5):
+for i in range(NUM_TRAIN):
     canvas = Image.new('L',(128,128),0) #criar imagem 
     #escolher imagem aleatória 
     idx = random.randint(0,len(mnist_train)-1) #escolher um indice random desde 0 a 4999. len(mnist_tran)=5000, e o range vai de 0 a 4999
@@ -92,7 +97,7 @@ for i in range(5):
     f_labels1A.write(linha)
 
 f_labels1A.close()
-for i in range(1):
+for i in range(NUM_TEST):
     canvas = Image.new('L',(128,128),0)
 
     idx = random.randint(0,len(mnist_test)-1)
@@ -124,11 +129,12 @@ print("Criação de Cenas - Versão A concluida")
 #VERSÃO D
 #Criar imagens com multiplos dígitos (3 a 5) com tamanhos variados e sem sobreposição
 #TRAIN
-for i in range(5):
+for i in range(NUM_TRAIN):
     canvas = Image.new('L',(128,128),0)
     n = random.randint(3,5) #escolha random do nº de digitos da imagem~
     idx=[]  #criação de lista para os índices
     labels1D = [] #criação da lista para labels desta imagem
+    boxes = [] #lista de posições ocupadas
     for e in range(n): 
         indice = random.randint(0,len(mnist_train)-1) #escolher um indice random
         idx.append(indice)      #adicionar à lista de indices
@@ -136,7 +142,6 @@ for i in range(5):
     #temos que ler as imagens destes indices, dar resize para random (22,36), colar em posição aleatória na imagem preta
     #guardar num dataset da versão C train
     num = len(idx)
-    boxes = [] #lista de posições ocupadas
     for u in range(num):
         ind = idx[u]
         img_tensor , label_tensor = mnist_train[ind]
@@ -162,7 +167,7 @@ for i in range(5):
             y_cand = random.randint(0,128-h)
             #definir bordas limite do novo digito
             x_max_cand = x_cand + w
-            y_max_cand = y_cand + y
+            y_max_cand = y_cand + h #MUDADO, TINHAS Y EM VEZ DE H AQUI
 
             sobrepõe = False
             for (bx_min, by_min, bx_max, by_max) in boxes:
@@ -200,11 +205,12 @@ for i in range(5):
 f_labels1D.close()
 
  #TEST
-for i in range(1):
+for i in range(NUM_TEST):
     canvas = Image.new('L',(128,128),0)
     n = random.randint(3,5) #escolha random do nº de digitos da imagem~
     idx=[]  #criação de lista para os índices
     labels2D = []
+    boxes = [] #lista de posições ocupadas
     for e in range(n): 
         indice = random.randint(0,len(mnist_test)-1) #escolher um indice random
         idx.append(indice)      #adicionar à lista de indices
