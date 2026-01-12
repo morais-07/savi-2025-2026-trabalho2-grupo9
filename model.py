@@ -7,36 +7,28 @@ import torch.nn.functional as F  # New import for functional API
 class ModelFullyconnected(nn.Module):
 
     def __init__(self):
-        super(ModelFullyconnected, self).__init__()  # call the parent constructor
+        super(ModelFullyconnected, self).__init__() # Chama o construtor da classe pai (nn.Module)
 
-        nrows = 28
-        ncols = 28
-        ninputs = nrows * ncols
-        noutputs = 10
+        nrows = 28 # Número de linhas da imagem
+        ncols = 28 # Número de colunas da imagem
+        ninputs = nrows * ncols # Número de inputs (28x28=784)
+        noutputs = 10 # Número de outputs (10 classes para os dígitos 0-9)
 
-        # Define the layers of the model
+        # Define the layers of the model (fully connected layer) 
         self.fc = nn.Linear(ninputs, noutputs)
 
-        print('Model architecture initialized with ' + str(self.getNumberOfParameters()) + ' parameters.')
-        summary(self, input_size=(1, 1, 28, 28))
+        print('Model architecture initialized with ' + str(self.getNumberOfParameters()) + ' parameters.') # Print number of parameters
+        summary(self, input_size=(1, 1, 28, 28)) # Print model summary
 
     def forward(self, x):
 
-        # print('Forward method called ...')
-        # print('Input x.shape = ' + str(x.shape))
+        x = x.view(x.size(0), -1) # Esticar o input para um vetor 1D
+        y = self.fc(x) # Passar pelo layer fully connected
 
-        # flatten the input to a vector of 1x28x28
-        x = x.view(x.size(0), -1)
-        # print('Input x.shape = ' + str(x.shape))
-
-        # Now we can pass through the fully connected layer
-        y = self.fc(x)
-        # print('Output y.shape = ' + str(y.shape))
-
-        return y
+        return y # Retorna a saída
 
     def getNumberOfParameters(self):
-        return sum(p.numel() for p in self.parameters() if p.requires_grad)
+        return sum(p.numel() for p in self.parameters() if p.requires_grad) # Conta o número de parâmetros treináveis
 
 
 class ModelConvNet(nn.Module):
@@ -45,10 +37,10 @@ class ModelConvNet(nn.Module):
 
         super(ModelConvNet, self).__init__()  # call the parent constructor
 
-        nrows = 28
-        ncols = 28
-        ninputs = nrows * ncols
-        noutputs = 10
+        nrows = 28 # Número de linhas da imagem
+        ncols = 28 # Número de colunas da imagem
+        ninputs = nrows * ncols # Número de inputs (28x28=784)
+        noutputs = 10 # Número de outputs (10 classes para os dígitos 0-9)
 
         # Define first conv layer
         self.conv1 = nn.Conv2d(in_channels=1, out_channels=32, kernel_size=3, padding=1)
@@ -81,31 +73,31 @@ class ModelConvNet(nn.Module):
 
     def forward(self, x):
 
-        print('Forward method called ...')
+        # print('Forward method called ...')
 
-        print('Input x.shape = ' + str(x.shape))
+        # print('Input x.shape = ' + str(x.shape))
 
         x = self.conv1(x)
-        print('After conv1 x.shape = ' + str(x.shape))
+        # print('After conv1 x.shape = ' + str(x.shape))
 
         x = self.pool1(x)
-        print('After pool1 x.shape = ' + str(x.shape))
+        # print('After pool1 x.shape = ' + str(x.shape))
 
         x = self.conv2(x)
-        print('After conv2 x.shape = ' + str(x.shape))
+        # print('After conv2 x.shape = ' + str(x.shape))
 
         x = self.pool2(x)
-        print('After pool2 x.shape = ' + str(x.shape))
+        # print('After pool2 x.shape = ' + str(x.shape))
 
         # Transform to latent vector
         x = x.view(-1, 64*7*7)
-        print('After flattening x.shape = ' + str(x.shape))
+        # print('After flattening x.shape = ' + str(x.shape))
 
         x = self.fc1(x)
-        print('After fc1 x.shape = ' + str(x.shape))
+        # print('After fc1 x.shape = ' + str(x.shape))
 
         y = self.fc2(x)
-        print('Output y.shape = ' + str(y.shape))
+        # print('Output y.shape = ' + str(y.shape))
 
         return y
 
@@ -195,66 +187,67 @@ class ModelConvNet3(nn.Module):
 
         return y
 
-# Classe de modelo CNN melhorada com Batch Normalization e Dropout (Tarefa 1)
+# ------------------------------------------------
+# TAREFA 1 - Classe de modelo CNN melhorada com Batch Normalization e Dropout
+# ------------------------------------------------
 
 class ModelBetterCNN(nn.Module):
     def __init__(self):
         super(ModelBetterCNN, self).__init__()
 
-        # --- Arquitetura Melhorada ---
+        # Arquitetura Melhorada
         
-        # Bloco 1: Detalhes pequenos
-        self.conv1 = nn.Conv2d(1, 32, 3, padding=1)
-        self.bn1 = nn.BatchNorm2d(32)   # <--- Batch Normalization
+        # Bloco 1
+        self.conv1 = nn.Conv2d(1, 32, 3, padding=1) # Output: 32x28x28
+        self.bn1 = nn.BatchNorm2d(32) # Batch Normalization (ajuda a estabilizar e acelerar o treino)
         self.pool1 = nn.MaxPool2d(2, 2) # Output: 32x14x14
 
-        # Bloco 2: Padrões intermédios
-        self.conv2 = nn.Conv2d(32, 64, 3, padding=1)
-        self.bn2 = nn.BatchNorm2d(64)   # <--- Batch Normalization
+        # Bloco 2
+        self.conv2 = nn.Conv2d(32, 64, 3, padding=1) # Output: 64x14x14
+        self.bn2 = nn.BatchNorm2d(64) # Batch Normalization (ajuda a estabilizar e acelerar o treino)
         self.pool2 = nn.MaxPool2d(2, 2) # Output: 64x7x7
 
-        # Bloco 3: Padrões complexos (Sem pooling para não perder muita informação espacial)
-        self.conv3 = nn.Conv2d(64, 128, 3, padding=1)
-        self.bn3 = nn.BatchNorm2d(128)  # <--- Batch Normalization
+        # Bloco 3 (Sem pooling para manter mais informação espacial)
+        self.conv3 = nn.Conv2d(64, 128, 3, padding=1) # Output: 128x7x7
+        self.bn3 = nn.BatchNorm2d(128) # Batch Normalization (ajuda a estabilizar e acelerar o treino)
         # Output continua 128x7x7
 
-        # Classificador (Fully Connected)
-        self.fc1 = nn.Linear(128 * 7 * 7, 256)
-        self.dropout = nn.Dropout(0.5)  # <--- Dropout (50% probabilidade)
-        self.fc2 = nn.Linear(256, 10)
+        # Classificador
+        self.fc1 = nn.Linear(128 * 7 * 7, 256) # Transformar para vetor, Output: 256 neurónios
+        self.dropout = nn.Dropout(0.5) # Dropout (50% probabilidade)
+        self.fc2 = nn.Linear(256, 10) # Output: 10 classes
 
         print('ModelBetterCNN initialized with ' + str(self.getNumberOfParameters()) + ' parameters.')
-        # summary(self, input_size=(1, 1, 28, 28)) 
 
     def getNumberOfParameters(self):
-        return sum(p.numel() for p in self.parameters() if p.requires_grad)
+        return sum(p.numel() for p in self.parameters() if p.requires_grad) # Conta o número de parâmetros treináveis
 
     def forward(self, x):
         # Bloco 1
-        x = self.conv1(x)
-        x = self.bn1(x)
-        x = F.relu(x) # Ativação
-        x = self.pool1(x)
+        x = self.conv1(x) # Convolução (deteta features)
+        x = self.bn1(x) # Batch Normalization (ajuda a estabilizar e acelerar o treino)
+        x = F.relu(x) # Ativação ReLU dos neurónios (não linearidade)
+        x = self.pool1(x) # Max Pooling (reduz dimensão espacial)
 
         # Bloco 2
-        x = self.conv2(x)
-        x = self.bn2(x)
-        x = F.relu(x)
-        x = self.pool2(x)
+        x = self.conv2(x) # Convolução (deteta features)
+        x = self.bn2(x) # Batch Normalization (ajuda a estabilizar e acelerar o treino)
+        x = F.relu(x) # Ativação ReLU dos neurónios (não linearidade)
+        x = self.pool2(x) # Max Pooling (reduz dimensão espacial)
 
         # Bloco 3
-        x = self.conv3(x)
-        x = self.bn3(x)
-        x = F.relu(x)
-        # Nota: Não fazemos pool aqui
+        x = self.conv3(x) # Convolução (deteta features)
+        x = self.bn3(x) # Batch Normalization (ajuda a estabilizar e acelerar o treino)
+        x = F.relu(x) # Ativação ReLU dos neurónios (não linearidade)
+        # Não há pool aqui para manter mais informação espacial
 
-        # Aplanar (Flatten)
+        # Transformar para vetor
         x = x.view(-1, 128 * 7 * 7)
 
         # Camadas Densas
-        x = self.fc1(x)
-        x = F.relu(x)
+        x = self.fc1(x) # Fully Connected Layer
+        x = F.relu(x) # Ativação ReLU
         x = self.dropout(x) # Aplicar Dropout apenas no treino (PyTorch gere isto auto)
-        y = self.fc2(x)
+        y = self.fc2(x) # Camada de saída
 
         return y

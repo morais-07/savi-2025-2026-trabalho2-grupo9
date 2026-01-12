@@ -249,45 +249,51 @@ class Trainer():
         # 2. TAREFA 1: Avaliação com Sklearn (NOVO)
         # -----------------------------------------
         
-        # A) Matriz de Confusão
-        # O sklearn calcula isto automaticamente
+
+        # ------------------------------------------
+        # Matriz de Confusão
+        # -----------------------------------------
         cm = confusion_matrix(gt_classes, predicted_classes)
 
-        # B) Relatório de Classificação (Precision, Recall, F1-Score)
-        # digits=4 dá-te 4 casas decimais de precisão
+
+        # -----------------------------------------
+        # Relatório de Classificação (Precision, Recall, F1-Score)
+        # -----------------------------------------
         print("\n" + "="*60)
         print("RELATÓRIO DE CLASSIFICAÇÃO (Precision, Recall, F1)")
         print("="*60)
-        print(classification_report(gt_classes, predicted_classes, digits=4))
+        print(classification_report(gt_classes, predicted_classes, digits=4)) # digits = x, para x casas decimais
+
 
         # -----------------------------------------
-        # 3. Desenhar a Matriz (Adaptado)
+        # Desenhar a Matriz (Adaptado)
         # -----------------------------------------
-        plt.figure(2, figsize=(10, 8)) # Aumentei um pouco o tamanho
-        class_names = [str(i) for i in range(10)]
+        plt.figure(2, figsize=(10, 8)) # Cria a figura 
+        class_names = [str(i) for i in range(10)] # Classes 0-9
         
         seaborn.heatmap(cm, 
-                        annot=True, 
-                        fmt='d', 
-                        cmap='Blues', 
-                        cbar=False, # Tirei a barra lateral para ficar mais limpo
-                        xticklabels=class_names, 
-                        yticklabels=class_names)
+                        annot=True, # Anotar células com valores
+                        fmt='d', # Formato inteiro
+                        cmap='Blues', # Cor azul
+                        cbar=False, # Sem barra de cores
+                        xticklabels=class_names, # Rótulos do eixo x
+                        yticklabels=class_names) # Rótulos do eixo y
 
         plt.title('Matriz de Confusão', fontsize=16)
-        plt.xlabel('Classe Prevista', fontsize=14)
-        plt.ylabel('Classe Real', fontsize=14)
-        plt.tight_layout()
+        plt.xlabel('Classe Prevista', fontsize=14) 
+        plt.ylabel('Classe Real', fontsize=14) 
+        plt.tight_layout() # Ajustar o layout
 
-        save_path = os.path.join(self.args['experiment_full_name'], 'confusion_matrix.png')
+        save_path = os.path.join(self.args['experiment_full_name'], 'confusion_matrix.png') # Guardar figura
         plt.savefig(save_path)
         print(f"Matriz de confusão guardada em: {save_path}")
 
+
         # -----------------------------------------
-        # 4. Guardar estatísticas em JSON (NOVO)
+        # Guardar estatísticas em JSON
         # -----------------------------------------
-        # Usamos output_dict=True para receber os dados em formato dicionário
-        report_dict = classification_report(gt_classes, predicted_classes, output_dict=True)
+
+        report_dict = classification_report(gt_classes, predicted_classes, output_dict=True) # output_dict=True para obter dicionário
         
         json_filename = os.path.join(self.args['experiment_full_name'], 'statistics.json')
         with open(json_filename, 'w') as f:
@@ -295,17 +301,18 @@ class Trainer():
         
         print("Estatísticas (incluindo F1) guardadas em statistics.json")
 
-        # Remover ou comentar a parte antiga de cálculo manual "def getPrecisionRecall"
-        # pois o classification_report já faz isso melhor.
-
     def getPrecisionRecall(self, TPs, FPs, FNs):
 
+        # Fórmulas dadas na aula para precisão e recall
+
+        # Precision
         den = TPs + FPs
         if den == 0:
             precision = None
         else:
             precision = TPs / (TPs + FPs)
 
+        # Recall
         den = TPs + FNs
         if den == 0:
             recall = None

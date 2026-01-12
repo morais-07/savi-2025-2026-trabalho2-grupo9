@@ -39,7 +39,6 @@ class Dataset(torch.utils.data.Dataset):
         # ---------------------------------
         # Lógica de Percentagem (Adaptada)
         # ---------------------------------
-        # Select the percentage of examples specified in args
         # Em vez de cortar listas, definimos o tamanho virtual do dataset
         self.num_examples = int(len(self.data_source) * args['percentage_examples'])
         
@@ -62,11 +61,10 @@ class Dataset(torch.utils.data.Dataset):
         # ----------------------------
         # Manter compatibilidade com MSELoss (One-Hot Encoding)
         # ----------------------------
-        # Aqui mantivemos a TUA lógica exata para transformar o número (ex: 3)
-        # num vetor [0, 0, 0, 1, 0, 0, 0, 0, 0, 0]
+        # Aqui mantivemos a lógica exata para transformar um número num vetor
         
-        label = [0]*10  # create a list of ten zeros
-        label[label_index] = 1  # set the position of the label to 1
+        label = [0]*10  # cria uma lista de zeros com tamanho 10
+        label[label_index] = 1  # define o índice correspondente ao dígito como 1
 
         label_tensor = torch.tensor(label, dtype=torch.float)
 
