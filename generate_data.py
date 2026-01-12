@@ -14,7 +14,6 @@ import random
 
 #Carregar dados do mnist
 args = {'dataset_folder': './data', 'percentage_examples': 1.0} #carregar 100% dos dados
-#MUDADO TINHAS UM ARGUMENTO DO TEU PC
 
 # Define quantas imagens queres gerar
 NUM_TRAIN = 5000
@@ -24,14 +23,12 @@ print("A carregar dígitos originais...")
 
 to_pil = transforms.ToPILImage() #converte tensor em imagem 
 
-mnist_train = Dataset(args, is_train=True)  #objeto com listas 
+mnist_train = Dataset(args, is_train=True)  
 mnist_test = Dataset(args, is_train=False)
 
 print(f"Dígitos de treino disponíveis: {len(mnist_train)}")
 print(f"Dígitos de teste disponíveis: {len(mnist_test)}")
 
-#canvas = Image.new('L',(128,128),0) #criar imagem preta (0) com 128x128´(pedido no enunciado)
-#criar dataset novo Versão A - 1 dígito aleatório por imagem, dataset com pasta train e test
 ds_A = 'Dataset_Cenas_Versão_A'
 ds_D = 'Dataset_Cenas_Versão_D'
 
@@ -52,53 +49,34 @@ os.makedirs(os.path.join(ds_D, 'test', 'images'), exist_ok=True)
 labels_path2D = os.path.join(ds_D, 'test', 'labels.txt')
 f_labels2D = open(labels_path2D, 'w')
 
-#Ao criar uma nova imagem, adicionar ao ficheiro de labels: nome da imagem, numero de digitos, label, posição (x,y) e size (w,h)
-
-#criar dataset novo Versão D - múltiplos dígitos por imagem (sem diferença de escala), dataset com pasta train e test
 #VERSÃO A
-#Criar ciclo para 5000 imagens de treino
-#para cada ciclo: criar imagem preta 
-#tirar imagem aleatória da pool de 60000
-#reduzir para tamanho entre 22x22 e 36x36
-#colar em posição aleatória da imagem preta
-#guardar num dataset novo versão a train
-#Criar ciclo para 1000 imagens de teste 
-#labels_path = os.path.join(ds_A, 'train', 'labels.txt') #criar ficheiro para labels
+#TRAIN
 for i in range(NUM_TRAIN):
-    canvas = Image.new('L',(128,128),0) #criar imagem 
-    #escolher imagem aleatória 
+    canvas = Image.new('L',(128,128),0) #criar imagem  
     idx = random.randint(0,len(mnist_train)-1) #escolher um indice random desde 0 a 4999. len(mnist_tran)=5000, e o range vai de 0 a 4999
 
     img_tensor, label_tensor = mnist_train[idx]
     label = torch.argmax(label_tensor).item()
-    #img_digito = to_pil(img_tensor)
+    
 
-    # 1. Converter para numpy para manipularmos os valores com precisão
+    #Converter para numpy para manipularmos os valores com precisão
     img_np = img_tensor.detach().cpu().numpy().squeeze()
 
-    # 2. Normalizar para garantir que o fundo seja 0 e o dígito vá até 255
-    # Isto resolve o problema do "quadrado cinzento"
+    #Normalizar para garantir que o fundo seja 0 e o dígito vá até 255
     img_min = img_np.min()
     img_max = img_np.max()
     img_np = (img_np - img_min) / (img_max - img_min + 1e-8) # escala 0 a 1
-    #img_np = (img_np * 255).astype(np.uint8) # escala 0 a 255
 
     # Aplicamos um pequeno "corte" para remover qualquer ruído residual no fundo
     # Tudo o que for menos de 20% de brilho vira preto puro (0)
     img_np[img_np<0.2]=0
-    # 3. Agora convertemos para imagem PIL
+    #Agora convertemos para imagem PIL
     img_digito = Image.fromarray((img_np*255).astype(np.uint8), mode='L')
 
-    #img_digito = img_digito.point(lambda p: p if p > 60 else 0)
-    #img_caminho = mnist_train.image_filenames[idx] #retirar path do indice aleatório 
-    #label = mnist_train.labels[idx] #retirar label da imagem de indice aleatório
-
     #Abrir e redimensionar o dígito para uma escala entre 22 e 26
-    #img_digito = Image.open(img_caminho) #como retirámos o path temos de abrir a imagem
     s = random.randint(22,36) #num random entre 22 e 36 para a escala
     img_digito=img_digito.resize((s,s), Image.Resampling.LANCZOS)
-    #img_digito = img_digito.point(lambda p: p if p > 50 else 0) # Filtra o "lixo" cinzento
-    #FALTA FAZER A CORREÇÃO DA COR PQ OBVIAMENTE N ESTÁ BEM
+    
     #calcular posição aleatória na imagem preta 
     w, h = img_digito.size #valor de largura e altura do digito
     x = random.randint(0,128-w) #a posição do digito no canva tem de ser de 0 a (128-w) porque um valor maior que este colocaria o digito fora da imagem preta
@@ -113,6 +91,8 @@ for i in range(NUM_TRAIN):
     linha = f"{nome_ficheiro} 1 {int(label)} {x} {y} {w} {h}\n"
     f_labels1A.write(linha)
 
+#TEST
+
 f_labels1A.close()
 for i in range(NUM_TEST):
     canvas = Image.new('L',(128,128),0)
@@ -121,35 +101,25 @@ for i in range(NUM_TEST):
 
     img_tensor, label_tensor = mnist_test[idx]
     label = torch.argmax(label_tensor).item()
-    #img_digito = to_pil(img_tensor)
     
-     # 1. Converter para numpy para manipularmos os valores com precisão
+    #Converter para numpy para manipularmos os valores com precisão
     img_np = img_tensor.detach().cpu().numpy().squeeze()
 
-    # 2. Normalizar para garantir que o fundo seja 0 e o dígito vá até 255
-    # Isto resolve o problema do "quadrado cinzento"
+    #Normalizar para garantir que o fundo seja 0 e o dígito vá até 255
+
     img_min = img_np.min()
     img_max = img_np.max()
     img_np = (img_np - img_min) / (img_max - img_min + 1e-8) # escala 0 a 1
-    #img_np = (img_np * 255).astype(np.uint8) # escala 0 a 255
-
+    
     # Aplicamos um pequeno "corte" para remover qualquer ruído residual no fundo
     # Tudo o que for menos de 20% de brilho vira preto puro (0)
     img_np[img_np<0.2]=0
-    # 3. Agora convertemos para imagem PIL
+    #Agora convertemos para imagem PIL
     img_digito = Image.fromarray((img_np*255).astype(np.uint8), mode='L')
-
-    #img_digito = img_digito.point(lambda p: p if p > 60 else 0)
-    #img_caminho = mnist_train.image_filenames[idx] #retirar path do indice aleatório 
-    #label = mnist_train.labels[idx] #retirar label da imagem de indice aleatório
-
-    #Abrir e redimensionar o dígito para uma escala entre 22 e 26
-    #img_digito = Image.open(img_caminho) #como retirámos o path temos de abrir a imagem
 
     s = random.randint(22,36) #num random entre 22 e 36 para a escala
     img_digito=img_digito.resize((s,s), Image.Resampling.LANCZOS)
-    #img_digito = img_digito.point(lambda p: p if p > 50 else 0) # Filtra o "lixo" cinzento
-    #FALTA FAZER A CORREÇÃO DA COR PQ OBVIAMENTE N ESTÁ BEM
+    
     #calcular posição aleatória na imagem preta 
     w, h = img_digito.size #valor de largura e altura do digito
     x = random.randint(0,128-w) #a posição do digito no canva tem de ser de 0 a (128-w) porque um valor maior que este colocaria o digito fora da imagem preta
@@ -179,48 +149,32 @@ for i in range(NUM_TRAIN):
         indice = random.randint(0,len(mnist_train)-1) #escolher um indice random
         idx.append(indice)      #adicionar à lista de indices
     #quando este ciclo for termina, temos uma lista idx com os indices random escolhidos
-    #temos que ler as imagens destes indices, dar resize para random (22,36), colar em posição aleatória na imagem preta
-    #guardar num dataset da versão C train
+    
     num = len(idx)
     for u in range(num):
         ind = idx[u]
         img_tensor , label_tensor = mnist_train[ind]
         label = torch.argmax(label_tensor).item()
-        #img_digito = to_pil(img_tensor)
 
-        # 1. Converter para numpy para manipularmos os valores com precisão
+        #Converter para numpy para manipularmos os valores com precisão
         img_np = img_tensor.detach().cpu().numpy().squeeze()
 
-        # 2. Normalizar para garantir que o fundo seja 0 e o dígito vá até 255
-        # Isto resolve o problema do "quadrado cinzento"
+        #Normalizar para garantir que o fundo seja 0 e o dígito vá até 255
         img_min = img_np.min()
         img_max = img_np.max()
         img_np = (img_np - img_min) / (img_max - img_min + 1e-8) # escala 0 a 1
-        #img_np = (img_np * 255).astype(np.uint8) # escala 0 a 255
 
         # Aplicamos um pequeno "corte" para remover qualquer ruído residual no fundo
         # Tudo o que for menos de 20% de brilho vira preto puro (0)
         img_np[img_np<0.2]=0
-        # 3. Agora convertemos para imagem PIL
+        #Agora convertemos para imagem PIL
         img_digito = Image.fromarray((img_np*255).astype(np.uint8), mode='L')
-
-        #img_digito = img_digito.point(lambda p: p if p > 60 else 0)
-        #img_caminho = mnist_train.image_filenames[idx] #retirar path do indice aleatório 
-        #label = mnist_train.labels[idx] #retirar label da imagem de indice aleatório
-
-        #Abrir e redimensionar o dígito para uma escala entre 22 e 26
-        #img_digito = Image.open(img_caminho) #como retirámos o path temos de abrir a imagem
 
         s = random.randint(22,36) #num random entre 22 e 36 para a escala
         img_digito=img_digito.resize((s,s), Image.Resampling.LANCZOS)
-        #img_digito = img_digito.point(lambda p: p if p > 50 else 0) # Filtra o "lixo" cinzento
-        #FALTA FAZER A CORREÇÃO DA COR PQ OBVIAMENTE N ESTÁ BEM
+        
         #calcular posição aleatória na imagem preta 
         w, h = img_digito.size #valor de largura e altura do digito
-
-        #x = random.randint(0,128-w) #a posição do digito no canva tem de ser de 0 a (128-w) porque um valor maior que este colocaria o digito fora da imagem preta
-        #y = random.randint(0,128-h)
-        #Posição candidata
 
         colidiu = True
         tentativas = 0
@@ -230,7 +184,7 @@ for i in range(NUM_TRAIN):
             y_cand = random.randint(0,128-h)
             #definir bordas limite do novo digito
             x_max_cand = x_cand + w
-            y_max_cand = y_cand + h #MUDADO, TINHAS Y EM VEZ DE H AQUI
+            y_max_cand = y_cand + h 
 
             sobrepõe = False
             for (bx_min, by_min, bx_max, by_max) in boxes:
@@ -253,11 +207,6 @@ for i in range(NUM_TRAIN):
             labels1D.append(f"{label} {x} {y} {w} {h}")
 
 
-        #Colar a imagem na posição 
-        #canvas.paste(img_digito,(x,y), img_digito)
-        
-
-
     nome_ficheiro = f"img_{i}.png"
     new_path = os.path.join(ds_D,'train','images',nome_ficheiro)
     canvas.save(new_path)
@@ -267,7 +216,7 @@ for i in range(NUM_TRAIN):
 
 f_labels1D.close()
 
- #TEST
+#TEST
 for i in range(NUM_TEST):
     canvas = Image.new('L',(128,128),0)
     n = random.randint(3,5) #escolha random do nº de digitos da imagem~
@@ -278,42 +227,31 @@ for i in range(NUM_TEST):
         indice = random.randint(0,len(mnist_test)-1) #escolher um indice random
         idx.append(indice)      #adicionar à lista de indices
     #quando este ciclo for termina, temos uma lista idx com os indices random escolhidos
-    #temos que ler as imagens destes indices, dar resize para random (22,36), colar em posição aleatória na imagem preta
-    #guardar num dataset da versão C train
+    
     num = len(idx)
     for u in range(num):
         ind = idx[u]
         img_tensor , label_tensor = mnist_test[ind]
         label = torch.argmax(label_tensor).item()
-        #img_digito = to_pil(img_tensor)
 
-        # 1. Converter para numpy para manipularmos os valores com precisão
+        #Converter para numpy para manipularmos os valores com precisão
         img_np = img_tensor.detach().cpu().numpy().squeeze()
 
-        # 2. Normalizar para garantir que o fundo seja 0 e o dígito vá até 255
-        # Isto resolve o problema do "quadrado cinzento"
+        #Normalizar para garantir que o fundo seja 0 e o dígito vá até 255
+        #Isto resolve o problema do "quadrado cinzento"
         img_min = img_np.min()
         img_max = img_np.max()
         img_np = (img_np - img_min) / (img_max - img_min + 1e-8) # escala 0 a 1
-        #img_np = (img_np * 255).astype(np.uint8) # escala 0 a 255
 
         # Aplicamos um pequeno "corte" para remover qualquer ruído residual no fundo
         # Tudo o que for menos de 20% de brilho vira preto puro (0)
         img_np[img_np<0.2]=0
-        # 3. Agora convertemos para imagem PIL
+        #Agora convertemos para imagem PIL
         img_digito = Image.fromarray((img_np*255).astype(np.uint8), mode='L')
-
-        #img_digito = img_digito.point(lambda p: p if p > 60 else 0)
-        #img_caminho = mnist_train.image_filenames[idx] #retirar path do indice aleatório 
-        #label = mnist_train.labels[idx] #retirar label da imagem de indice aleatório
-
-        #Abrir e redimensionar o dígito para uma escala entre 22 e 26
-        #img_digito = Image.open(img_caminho) #como retirámos o path temos de abrir a imagem
 
         s = random.randint(22,36) #num random entre 22 e 36 para a escala
         img_digito=img_digito.resize((s,s), Image.Resampling.LANCZOS)
-        #img_digito = img_digito.point(lambda p: p if p > 50 else 0) # Filtra o "lixo" cinzento
-        #FALTA FAZER A CORREÇÃO DA COR PQ OBVIAMENTE N ESTÁ BEM
+        
         #calcular posição aleatória na imagem preta 
         w, h = img_digito.size #valor de largura e altura do digito
 
@@ -346,12 +284,7 @@ for i in range(NUM_TEST):
         if not colidiu:
             canvas.paste(img_digito, (x, y), img_digito)
             labels2D.append(f"{label} {x} {y} {w} {h}")
-
-        #Colar a imagem na posição 
-        #canvas.paste(img_digito,(x,y), img_digito)
-        #x = random.randint(0,128-w) #a posição do digito no canva tem de ser de 0 a (128-w) porque um valor maior que este colocaria o digito fora da imagem preta
-        #y = random.randint(0,128-h)
-        
+    
 
     nome_ficheiro = f"img_{i}.png"
     new_path = os.path.join(ds_D,'test','images',nome_ficheiro)
