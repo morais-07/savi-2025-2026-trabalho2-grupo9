@@ -1,5 +1,9 @@
 import torch
-torch.backends.nnpack.enabled = False
+#torch.backends.nnpack.enabled = False
+try:
+    torch.backends.nnpack.enabled = False
+except AttributeError:
+    pass # Se não existir, ignora e segue em frente
 import torch.nn.functional as F
 from torchvision import transforms
 from torchvision.ops import nms 
