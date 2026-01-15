@@ -22,8 +22,12 @@ class TrainerFCN:
         # Optimizer
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=args.get('lr', 0.001))
         
+        # Criar pesos: dígitos (0-9) com peso 1.0, fundo (índice 10) com peso 0.1
+        weights = torch.ones(11)
+        weights[10] = 0.1 # Reduz o peso do fundo para a rede focar nos números
+        self.criterion = nn.CrossEntropyLoss(weight=weights.to(self.device))
         # Loss Function para 11 classes (0-9 + fundo)
-        self.criterion = nn.CrossEntropyLoss()
+        #self.criterion = nn.CrossEntropyLoss()
 
     def train_epoch(self):
         self.model.train()

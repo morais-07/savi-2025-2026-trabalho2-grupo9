@@ -42,14 +42,47 @@ def testar_e_guardar_resultados(model, dataset, device, folder_name="resultados"
         img_color = cv2.cvtColor(img_out, cv2.COLOR_GRAY2BGR)
 
         # Desenhar caixas (Lógica OpenCV)
-        for classe in range(10):
-            mask = (pred_map == classe).astype(np.uint8)
-            contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-            for cnt in contours:
-                if cv2.contourArea(cnt) > 30:
-                    x, y, w, h = cv2.boundingRect(cnt)
-                    cv2.rectangle(img_color, (x, y), (x+w, y+h), (0, 255, 0), 1)
-                    cv2.putText(img_color, str(classe), (x, y-2), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 0), 1)
+        #for classe in range(10):
+            # --- Lógica de Deteção Melhorada (Substitui o loop antigo) ---
+        
+            # 1. Criar uma máscara global: onde quer que a rede ache que existe UM DÍGITO (qualquer um de 0 a 9)
+            # Assumindo que a classe 10 é o fundo (background)
+        #mask_all_digits = (pred_map < 10).astype(np.uint8)
+        # Usamos o digit_probs (que tem valores de 0 a 1) com um threshold alto
+        threshold = 0.6 # Podes ajustar entre 0.5 e 0.8
+        mask_all_digits = (digit_probs > threshold).astype(np.uint8)
+            # 2. Operação Morfológica para unir fragmentos (fechar buracos e ligar pixels próximos)
+        kernel = np.ones((3, 3), np.uint8)
+        mask_cleaned = cv2.morphologyEx(mask_all_digits, cv2.MORPH_OPEN, kernel) 
+            #mask = (pred_map == classe).astype(np.uint8)
+            #operação para unir fragmentos e eliminar fragmentação
+            #kernel = np.ones((5, 5), np.uint8)
+            #mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel) 
+            # O 'CLOSE' preenche pequenos buracos pretos dentro da máscara branca
+        contours, _ = cv2.findContours(mask_cleaned, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        for cnt in contours:
+            if cv2.contourArea(cnt) > 80:
+                x, y, w, h = cv2.boundingRect(cnt)
+        
+                    # Extrair a região correspondente no mapa de predição
+                roi = pred_map[y:y+h, x:x+w]
+                    # Filtrar apenas os pixels que não são fundo na ROI
+                roi_digits = roi[roi < 10]
+        
+                if len(roi_digits) > 0:
+                        # Encontrar a classe mais comum nessa zona (Votação)
+                    counts = np.bincount(roi_digits)
+                    final_class = np.argmax(counts)
+            
+                        # Desenhar apenas uma caixa para o objeto inteiro
+                    cv2.rectangle(img_color, (x, y), (x+w, y+h), (0, 255, 0), 2)
+                    cv2.putText(img_color, f"Digito: {final_class}", (x, y-5), 
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+            #for cnt in contours:
+                #if cv2.contourArea(cnt) > 30:
+                    #x, y, w, h = cv2.boundingRect(cnt)
+                    #cv2.rectangle(img_color, (x, y), (x+w, y+h), (0, 255, 0), 1)
+                    #cv2.putText(img_color, str(classe), (x, y-2), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 0), 1)
 
         # 5. Criar comparação lado a lado (Original | Heatmap | Deteção Final)
         img_orig_bgr = cv2.cvtColor(img_out, cv2.COLOR_GRAY2BGR)
