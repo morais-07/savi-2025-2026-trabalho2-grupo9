@@ -86,7 +86,10 @@ for i in range(NUM_TRAIN):     #o numero de imagens a gerar diz-nos o nº de vez
 
 
     #Redimensionar o dígito para uma escala entre 22 e 26
-    s = random.randint(22,36) #num random entre 22 e 36 para a escala
+    #Se fosse Versão B:
+    #s = random.randint(22,36) #num random entre 22 e 36 para a escala
+    #Versão A (apenas 1 escala e posição aleatória)
+    s = 28
     img_digito=img_digito.resize((s,s), Image.Resampling.LANCZOS) 
     #Image.Resampling.LANCZOS é um filtro de resampling (define como o computador inventa/funde píxeis)
 
@@ -125,7 +128,8 @@ for i in range(NUM_TEST):
     
     img_digito = Image.fromarray((img_np*255).astype(np.uint8), mode='L')
 
-    s = random.randint(22,36) 
+    #Dígitos com o mesmo tamanho 28x28
+    s = 28 
     img_digito=img_digito.resize((s,s), Image.Resampling.LANCZOS)
     
     #calcular posição aleatória na imagem preta 
