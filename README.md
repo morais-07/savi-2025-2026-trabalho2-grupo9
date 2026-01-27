@@ -239,4 +239,4 @@ Recall (~65%) was limited by the lack of scale invariance.
 ### 4. Detection Examples
 Below is a grid with visual results, where red boxes represent model predictions after NMS.
 
-![Results Grid](Tarefa_1/Photos_README/final_grid_view.png)
+![Results Grid](savi-2025-2026-trabalho2-grupo9/Photos_README/final_grid_view.png)
