@@ -63,10 +63,26 @@ For this project, we focused on generating Version A and Version D. Version A wa
 
 ---
 
-## Libraries Used
+## Setup & Requirements
 
-COMPLETAR
+This project is built using **Python** and relies on the following libraries for training, evaluation, and data generation.
 
+### Libraries Used
+
+* **PyTorch (`torch`, `torchvision`):** The core deep learning framework used to build the CNN architectures, manage tensors, compute gradients, and load the baseline MNIST dataset.
+* **Scikit-Learn (`sklearn`):** Essential for **Task 1**, used to calculate advanced evaluation metrics not natively available in PyTorch (Precision, Recall, and F1-Score).
+* **Seaborn:** Used to render the **Confusion Matrix** heatmap, allowing for a clearer visual analysis of the model's classification errors.
+* **Matplotlib:** Used for visualizing training performance (Loss/Accuracy curves) and drawing bounding boxes on the synthetic images for **Tasks 2 and 3**.
+* **TQDM:** A utility library that provides real-time progress bars for training loops and dataset generation.
+* **NumPy:** The fundamental package for numerical array manipulation, acting as a bridge between PyTorch tensors and visualization libraries.
+
+### Installation
+
+To install all necessary dependencies, run the following command in your terminal:
+
+```bash
+pip install torch torchvision scikit-learn tqdm seaborn matplotlib numpy pillow
+```
 ---
 
 ## Instalation
