@@ -24,9 +24,44 @@ The comparison focuses on the trade-offs between **computational efficiency**, *
 
 ---
 
-## Datasets Used
+## Datasets
 
-COMPLETAR
+This project utilizes two main categories of data: the standard MNIST dataset for basic classification and a custom-generated synthetic dataset for object detection tasks.
+
+### 1. Standard MNIST (Task 1)
+Used for training and validating the baseline CNN classifier.
+* **Source:** Automatically downloaded via `torchvision.datasets`.
+* **Train Set:** 60,000 images.
+* **Test Set:** 10,000 images.
+* **Dimensions:** $28 \times 28$ pixels (Grayscale).
+* **Content:** Single, centered handwritten digits (0-9).
+
+### 2. Synthetic "Scenes" Dataset (Tasks 2, 3 & 4)
+To simulate a realistic object detection scenario, we developed a generation script that places MNIST digits onto a larger canvas. This dataset introduces challenges such as spatial translation, multiple objects, and scale variations.
+
+* **Resolution:** Images generated at $128 \times 128$ (or $100 \times 100$) pixels.
+* **Constraints:** * Digits are strictly non-overlapping.
+    * Scale varies between approx. $22 \times 22$ and $36 \times 36$ pixels.
+* **Ground Truth:** Stores class labels and bounding boxes $(x, y, w, h)$ for each digit.
+
+#### Dataset Versions
+We generated two of the following four distinct versions to incrementally test the model's robustness:
+
+| Version | Description | Digits per Image | Scale Variation | Purpose |
+| :--- | :--- | :---: | :---: | :--- |
+| **Ver. A** | Single Random | 1 | No | Testing translation invariance. |
+| **Ver. B** | Single Scaled | 1 | Yes | Testing scale invariance. |
+| **Ver. C** | Multi-Digit | 3 - 5 | No | Basic multiple object detection. |
+| **Ver. D** | Multi-Digit Scaled | 3 - 5 | Yes | **Full complexity scenario** (Task 4 target). |
+
+For this project, we focused on generating Version A and Version D. Version A was utilized to validate the generation pipeline and ground truth logic, while Version D was selected to challenge the model with maximum complexity.
+
+#### Statistics & Visualization
+*(Add here specific stats from your `main_dataset_stats.py`, for example:)*
+* **Total Generated Images:** 10,000 (Train) / 2,000 (Test).
+* **Class Balance:** The generator ensures a uniform distribution of digits 0-9.
+
+> **Note:** See the `results/` folder for mosaic visualizations of the generated scenes with ground truth bounding boxes.
 
 ---
 
