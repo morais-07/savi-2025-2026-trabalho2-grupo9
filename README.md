@@ -240,7 +240,7 @@ Recall (~65%) was limited by the lack of scale invariance.
 Below is a grid with visual results, where red boxes represent model predictions after NMS.
 
 <p align="center">
-  <img src="Photos_README/final_grid_view.png" alt="Task3" width="450"/>
+  <img src="Photo_README/final_grid_view.png" alt="Task3" width="450"/>
 </p>
 <p align="center">
   <em>Figure 2 - 9 random images of the Sliding Windows approach.</em>
