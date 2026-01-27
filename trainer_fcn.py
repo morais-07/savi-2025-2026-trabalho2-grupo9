@@ -11,7 +11,6 @@ class TrainerFCN:
         
         self.model = model.to(self.device)
         
-        # Criar os Dataloaders internamente para manter o estilo do grupo
         self.train_loader = DataLoader(
             train_dataset, batch_size=args['batch_size'], shuffle=True
         )
@@ -19,64 +18,64 @@ class TrainerFCN:
             test_dataset, batch_size=args['batch_size'], shuffle=False
         )
 
-        # Optimizer
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=args.get('lr', 0.001))
         
-        # Criar pesos: dígitos (0-9) com peso 1.0, fundo (índice 10) com peso 0.1
+        #Alocar pesos: fundo-0.1 , dígitos-1.0
         weights = torch.ones(11)
-        weights[10] = 0.1 # Reduz o peso do fundo para a rede focar nos números
-        self.criterion = nn.CrossEntropyLoss(weight=weights.to(self.device))
-        # Loss Function para 11 classes (0-9 + fundo)
-        #self.criterion = nn.CrossEntropyLoss()
+        weights[10] = 0.1  #faz com que a rede foque nos dígitos
+        self.criterion = nn.CrossEntropyLoss(weight=weights.to(self.device)) #erro da rede, dá mais importância a erros onde deviam estar dígitos
 
     def train_epoch(self):
-        self.model.train()
+        self.model.train()   #avisa a rede que o treino começou
         running_loss = 0.0
         
         for images, targets in tqdm(self.train_loader, desc="Training FCN"):
             images, targets = images.to(self.device), targets.to(self.device)
             
-            self.optimizer.zero_grad()
+            self.optimizer.zero_grad()  #limpa erros do ciclo anterior
             
-            # Forward: Output shape [Batch, 11, H_out, W_out]
+            #Output shape [Batch, 11, 32, 32]
             outputs = self.model(images)
             
-            # Se o target_map do dataset for maior que o output da rede, 
-            # redimensionamos o output para bater certo com o target.
+            #Se o target_map do dataset for maior que o output da rede redimensionamos o output
             if outputs.shape[-2:] != targets.shape[-2:]:
                 outputs = torch.nn.functional.interpolate(outputs, size=targets.shape[-2:], mode='bilinear', align_corners=False)
 
-            loss = self.criterion(outputs, targets)
-            loss.backward()
-            self.optimizer.step()
+            loss = self.criterion(outputs, targets) #calcula o erro entre o output que a rede previu com o target preparado no dataset 
+            loss.backward()  #indica como cada peso deve ser ajustado para que no próximo ciclo o erro seja menor
+            self.optimizer.step() #atualização dos pesos
             
-            running_loss += loss.item()
+            running_loss += loss.item()  #erro acumulado 
             
-        return running_loss / len(self.train_loader)
+        return running_loss / len(self.train_loader) #erro médio, objetivo: este diminuir em cada epoch
 
+    #testar a rede, perceber se aprendeu a detetar dígitos ou só decorou 
     def evaluate(self):
         self.model.eval()
         test_loss = 0.0
         correct_pixels = 0
         total_pixels = 0
         
-        with torch.no_grad():
+        with torch.no_grad():  #não é necessário calcular gradientes para mais tarde corrigir, vamos apensas testar e não treinar
             for images, targets in self.test_loader:
                 images, targets = images.to(self.device), targets.to(self.device)
                 outputs = self.model(images)
                 
+                #redimensionamento
                 if outputs.shape[-2:] != targets.shape[-2:]:
                     outputs = torch.nn.functional.interpolate(outputs, size=targets.shape[-2:], mode='bilinear', align_corners=False)
                 
-                loss = self.criterion(outputs, targets)
-                test_loss += loss.item()
+                loss = self.criterion(outputs, targets)  #calcular erro entre targets criados no dataset e outputs da FCN
+                test_loss += loss.item()                 #acumular erro
                 
-                # Calcular precisão pixel a pixel (métrica simples para FCN)
-                _, predicted = torch.max(outputs, 1)
-                correct_pixels += (predicted == targets).sum().item()
-                total_pixels += targets.nelement()
                 
-        return test_loss / len(self.test_loader), correct_pixels / total_pixels
+                _, predicted = torch.max(outputs, 1) #qual camada tem o valor mais alto em cada pixel
+                #torch.max devolve o valor do score e a posição e classe, apenas nos interessa a ultima
+                correct_pixels += (predicted == targets).sum().item() #comparação do mapa predicted com o target
+                #é criado um mapa de verdadeiros e falsos (True=1 e False=0), são somados os pixeis corretos 
+                total_pixels += targets.nelement() #acumulação do nº total de pixeis analizados 
+                
+        return test_loss / len(self.test_loader), correct_pixels / total_pixels #return do erro médio total e da precisão no acerto de pixeis 
 
     def save_checkpoint(self, path):
         torch.save(self.model.state_dict(), path)
