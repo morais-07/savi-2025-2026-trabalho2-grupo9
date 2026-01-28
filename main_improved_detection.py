@@ -7,58 +7,46 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 
-
+#transformar mapa de calor da rede em bounding boxes
 def testar_e_guardar_resultados(model, dataset, device, folder_name="resultados"):
     os.makedirs(folder_name, exist_ok=True)
-    model.eval()
+    model.eval() #garante que a rede não desliga 50%
     print(f"A gerar visualizações em: {folder_name}...")
     
-    # Testar apenas 5 imagens para não demorar muito
+    # Testar apenas 5 imagens
     for i in range(5):
-        img_tensor, target = dataset[i] # Vai buscar ao dataset
-        # img_tensor tem shape [1, 128, 128]
+        img_tensor, target = dataset[i] #Vai buscar ao dataset
+        #img_tensor tem shape [1, 128, 128]
         
-        input_tensor = img_tensor.unsqueeze(0).to(device) # Add batch dim -> [1, 1, 128, 128]
+        input_tensor = img_tensor.unsqueeze(0).to(device) #adiciona o batch
         
         with torch.no_grad():
             output = model(input_tensor)
             output = torch.nn.functional.interpolate(output, size=(128, 128), mode='bilinear')
             #Gerar Heat Map
-            # Gerar probabilidades para o Heatmap (usando Softmax)
+            #Gerar probabilidades para o Heatmap (usando Softmax)
             probs = torch.nn.functional.softmax(output, dim=1).squeeze()
-            # Pegamos na probabilidade máxima entre todas as classes de dígitos (0 a 9)
-            # Ignoramos a classe de fundo (assumindo que é a última, índice 10)
-            digit_probs, _ = torch.max(probs[0:10, :, :], dim=0)
+            #Pegamos na probabilidade máxima entre todas as classes de dígitos (0 a 9)
+            #Ignoramos a classe de fundo (assumindo que é a última, índice 10)
+            digit_probs, _ = torch.max(probs[0:10, :, :], dim=0)  #matriz 2D onde cada ponto brilha mais se a rede tiver > certeza que há um dígito
             digit_probs = digit_probs.cpu().numpy()
 
-            pred_map = torch.argmax(output, dim=1).squeeze().cpu().numpy()
+            pred_map = torch.argmax(output, dim=1).squeeze().cpu().numpy() 
 
-        # 3. Processamento do Heatmap para visualização
+        #Processamento do heat map
         heatmap_gray = (digit_probs * 255).astype(np.uint8)
         heatmap_color = cv2.applyColorMap(heatmap_gray, cv2.COLORMAP_JET)
 
-        # Converter para imagem colorida para desenhar
+        #Converter para imagem colorida para desenhar
         img_out = (img_tensor.squeeze().numpy() * 255).astype(np.uint8)
         img_color = cv2.cvtColor(img_out, cv2.COLOR_GRAY2BGR)
-
-        # Desenhar caixas (Lógica OpenCV)
-        #for classe in range(10):
-            # --- Lógica de Deteção Melhorada (Substitui o loop antigo) ---
-        
-            # 1. Criar uma máscara global: onde quer que a rede ache que existe UM DÍGITO (qualquer um de 0 a 9)
-            # Assumindo que a classe 10 é o fundo (background)
-        #mask_all_digits = (pred_map < 10).astype(np.uint8)
-        # Usamos o digit_probs (que tem valores de 0 a 1) com um threshold alto
-        threshold = 0.6 # Podes ajustar entre 0.5 e 0.8
+        #AQUI
+        threshold = 0.6 #ajustar entre 0.5 e 0.8
         mask_all_digits = (digit_probs > threshold).astype(np.uint8)
-            # 2. Operação Morfológica para unir fragmentos (fechar buracos e ligar pixels próximos)
+        
         kernel = np.ones((3, 3), np.uint8)
         mask_cleaned = cv2.morphologyEx(mask_all_digits, cv2.MORPH_OPEN, kernel) 
-            #mask = (pred_map == classe).astype(np.uint8)
-            #operação para unir fragmentos e eliminar fragmentação
-            #kernel = np.ones((5, 5), np.uint8)
-            #mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel) 
-            # O 'CLOSE' preenche pequenos buracos pretos dentro da máscara branca
+            
         contours, _ = cv2.findContours(mask_cleaned, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         for cnt in contours:
             if cv2.contourArea(cnt) > 80:
