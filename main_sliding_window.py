@@ -73,257 +73,181 @@ def calculate_iou(box1, box2):
     union = area1 + area2 - intersection
     return intersection / union if union > 0 else 0
 
+def visualize_grid(images_list, titles_list):
+    """Cria um mosaico (grelha) de até 3x3 com as imagens de resultado"""
+    if not images_list: 
+        print("[AVISO] Nenhuma imagem para mostrar na grelha.")
+        return
+        
+    # Limita a grelha a no máximo 9 imagens (3x3)
+    num_imgs = min(len(images_list), 9)
+    images_list = images_list[:num_imgs]
+    titles_list = titles_list[:num_imgs]
+    
+    # Define o tamanho da figura (ajusta conforme necessário)
+    fig, axes = plt.subplots(3, 3, figsize=(12, 12))
+    axes = axes.flatten()
+    
+    for i in range(9):
+        if i < num_imgs:
+            axes[i].imshow(images_list[i])
+            axes[i].set_title(titles_list[i], fontsize=8)
+        axes[i].axis('off') # Esconde os eixos mesmo nas células vazias
+        
+    plt.tight_layout()
+    plt.show()
+
 def load_ground_truth(labels_path):
-    """Lê o ficheiro labels.txt para sabermos onde estão os dígitos reais"""
+    """
+    Lê o ficheiro labels.txt. Formato: [Nome] [N_Digitos] [L X Y W H] ...
+    """
     gt_data = {}
     if not os.path.exists(labels_path):
         return {}
-    with open(labels_path, 'r') as lines:
-        for line in lines:
+    
+    with open(labels_path, 'r') as f:
+        for line in f:
             parts = line.strip().split()
             if len(parts) < 2: continue
             filename = parts[0]
             boxes = []
-            cursor = 2
-            # Ajusta o cursor dependendo se tem numero de digitos ou nao (Versao A vs D)
-            # Assumindo formato Versao D: [Nome] [N] [Label X Y W H]...
+            
+            # Nas tuas versões A e D, o segundo valor é sempre o número de dígitos
             num_digits = int(parts[1])
+            cursor = 2
+                
             for _ in range(num_digits):
                 try:
+                    # L, X, Y, W, H
                     lbl, x, y, w, h = map(int, parts[cursor:cursor+5])
-                    boxes.append([x, y, x+w, y+h, lbl]) # [x1, y1, x2, y2, label]
+                    boxes.append([x, y, x+w, y+h, lbl]) # Convertemos para [x1, y1, x2, y2, label]
                     cursor += 5
                 except: break
             gt_data[filename] = boxes
     return gt_data
 
-def visualize_grid(images_list, titles_list):
-    """Cria o mosaico 3x3"""
-    if not images_list: return
-    # Limita a 9 imagens
-    images_list = images_list[:9]
-    titles_list = titles_list[:9]
+def process_version(config, model, device, transform, limit=None):
+    print(f"\n>>> A PROCESSAR: {config['name']}")
     
-    fig, axes = plt.subplots(3, 3, figsize=(12, 12))
-    axes = axes.flatten()
-    for i, ax in enumerate(axes):
-        if i < len(images_list):
-            ax.imshow(images_list[i])
-            ax.set_title(titles_list[i], fontsize=8)
-        ax.axis('off')
-    plt.tight_layout()
-    plt.show()
-
-
-def main():
-
-    # ------------------
-    # CONFIGURAÇÕES
-    # ------------------
-    CHECKPOINT_PATH = './experiments/checkpoint.pkl'
-    TEST_IMAGES_DIR = './Dataset_Cenas_Versão_D/test/images/'
-    OUTPUT_DIR = './results_sliding_window'
-    WINDOW_SIZE = (32, 32) # Tamanho da janela deslizante (em pixels)
-    STEP_SIZE = 4 # Passo da janela deslizante (em pixels)
-    CONFIDENCE_THRESHOLD = 0.98 # Confiança mínima (Probabilidade)
-    ENTROPY_THRESHOLD = 0.1 # Entropia máxima (Se > 0.1, a rede está confusa/fundo)
-    IOU_THRESHOLD = 0.1 # Sobreposição máxima permitida (NMS)
-    PIXEL_THRESHOLD = 70 # Se a janela tiver menos que X intensidade de pixel, ignora (é fundo preto)
+    output_dir = config['output_dir']
+    os.makedirs(output_dir, exist_ok=True)
     
-    # Carregar Ground Truth
-    LABELS_FILE = './Dataset_Cenas_Versão_D/test/labels.txt'
-    ground_truth = load_ground_truth(LABELS_FILE)
+    ground_truth = load_ground_truth(config['labels_file'])
+    image_files = glob.glob(os.path.join(config['images_dir'], "*.png"))
+    if limit: image_files = image_files[:limit]
 
-    # Contadores para estatísticas
-    total_tp = 0
-    total_fp = 0
-    total_gt = 0
-    grid_images = []
-    grid_titles = []
+    total_tp, total_fp, total_gt = 0, 0, 0
+    grid_images, grid_titles = [], []
 
+    # Parâmetros de deteção (Podes ajustar estes se a Versão A continuar difícil)
+    WINDOW_SIZE = (32, 32)
+    STEP_SIZE = 4
+    CONF_THRESH = 0.91 
+    ENTROPY_THRESH = 0.1
+    IOU_THRESH = 0.05
+    PIXEL_THRESHOLD = 0.03
 
-    # ------------------
-    # Início do Processo
-    # ------------------
+    for img_path in tqdm(image_files, desc=f"Scanning {config['name']}", leave=False):
+        filename = os.path.basename(img_path)
+        all_boxes, all_scores, all_labels = [], [], []
+        
+        img = Image.open(img_path).convert('L')
+        draw_img = img.convert('RGB')
+        draw = ImageDraw.Draw(draw_img)
 
-    print("\n--- Início do Processo de Deteção com Sliding Window ---\n")
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"A usar dispositivo: {device}")
-    
-    # Verificar se a pasta de imagens de teste existe
-    if not os.path.exists(TEST_IMAGES_DIR):
-        print(f"[ERRO] Diretoria de imagens não encontrada: {TEST_IMAGES_DIR}")
-        return
+        for (x, y, window) in sliding_window(img, STEP_SIZE, WINDOW_SIZE):
+            if transforms.ToTensor()(window).mean() < PIXEL_THRESHOLD:
+                continue
 
-    # Criar pasta de output se não existir
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
-    
-    # Carregar modelo treinado (BetterCNN)
-    model = load_trained_model(CHECKPOINT_PATH, device)
-    
-    # Transformação (Igual ao treino da Tarefa 1)
-    transform = transforms.Compose([
-        transforms.Resize((28, 28)), # Garante 28x28
-        transforms.ToTensor(), # Converte para Tensor
-        transforms.Normalize((0.1307,), (0.3081,)) # Normalização MNIST
-    ])
+            input_tensor = transform(window).unsqueeze(0).to(device)
+            with torch.no_grad():
+                output = model(input_tensor)
+                probs = F.softmax(output, dim=1)
+                conf, pred = torch.max(probs, 1)
+                entropy = calculate_entropy(probs)
+            
+            if conf.item() >= CONF_THRESH and entropy < ENTROPY_THRESH:
+                all_boxes.append([x, y, x + WINDOW_SIZE[0], y + WINDOW_SIZE[1]])
+                all_scores.append(conf.item())
+                all_labels.append(pred.item())
 
-    image_files = glob.glob(os.path.join(TEST_IMAGES_DIR, "*.png")) # Lista de imagens .png na pasta de teste
-    
-    # Verificar se há imagens para processar
-    if len(image_files) == 0:
-        print("[ERRO] Nenhuma imagem .png encontrada na pasta de teste.")
-        return
+        final_preds = []
+        if all_boxes:
+            keep = nms(torch.tensor(all_boxes, dtype=torch.float32), 
+                       torch.tensor(all_scores, dtype=torch.float32), IOU_THRESH)
+            for idx in keep:
+                idx = idx.item()
+                final_preds.append((all_boxes[idx], all_labels[idx]))
+                draw.rectangle(all_boxes[idx], outline="red", width=1)
+                draw.text((all_boxes[idx][0], all_boxes[idx][1]-10), str(all_labels[idx]), fill="red")
 
-    print(f"A processar {len(image_files)} imagens...")
-
-    # ------------------
-    # Processamento das Imagens
-    # ------------------
-
-    # Loop sobre cada imagem de teste
-    for img_path in image_files:
-
-        all_boxes = [] # Coordenadas das caixas detetadas
-        all_scores = [] # Scores das detecções
-        all_labels = [] # Labels das detecções
-        final_preds = [] # Deteções finais após NMS
-
-        original_img = Image.open(img_path).convert('L') # Converter para grayscale (MNIST é grayscale)
-    
-        draw_img = original_img.convert('RGB') # Converte para RGB para desenhar caixas
-        draw = ImageDraw.Draw(draw_img) # Objeto para desenhar - caixas
-        filename = os.path.basename(img_path) # Nome do ficheiro da imagem
-
-        # Cálculo do total de janelas para a barra de progresso
-        total_windows_x = (original_img.size[0] - WINDOW_SIZE[0]) // STEP_SIZE + 1
-        total_windows_y = (original_img.size[1] - WINDOW_SIZE[1]) // STEP_SIZE + 1
-        total_windows = total_windows_x * total_windows_y
-
-        with tqdm(total=total_windows, desc=f"Scan: {filename}", leave=False) as pbar: # Barra de progresso para cada imagem
-
-            for (x, y, window) in sliding_window(original_img, STEP_SIZE, WINDOW_SIZE): # Gerar janelas deslizantes
-                
-                # -----------------
-                # Ignorar janelas quase pretas
-                # -----------------
-                window_tensor_check = transforms.ToTensor()(window) # Converter para tensor para análise
-                if window_tensor_check.sum() < (PIXEL_THRESHOLD / 255.0): # Normalizado entre 0 e 1, se for quase preto não processa
-                    pbar.update(1) # Atualiza a barra de progresso
-                    continue
-                # ----------------- 
-                # Classificação da janela
-                # -----------------
-                input_tensor = transform(window).unsqueeze(0).to(device) # Transformar e adicionar dimensão batch (1, C, H, W)
-
-                with torch.no_grad(): # Desliga o cálculo dos gradientes
-                    output = model(input_tensor) # Logits de saída do modelo (números brutos)
-                    probs = F.softmax(output, dim=1) # Converter para probabilidades com Softmax (0 a 1)
-
-                    conf, pred_class = torch.max(probs, 1) # Confiança e classe prevista
-                    conf = conf.item() # Converter para float
-                    pred_class = pred_class.item() # Converter para int
-                    
-                    entropy = calculate_entropy(probs) # Calcular entropia (incerteza)
-                
-                #-----------------
-                # Verificar limiares de confiança e entropia
-                #-----------------
-                if conf >= CONFIDENCE_THRESHOLD and entropy < ENTROPY_THRESHOLD:
-                    all_boxes.append([x, y, x + WINDOW_SIZE[0], y + WINDOW_SIZE[1]]) # [x1, y1, x2, y2]
-                    all_scores.append(conf) # Score da deteção
-                    all_labels.append(pred_class) # Label da deteção
-
-                pbar.update(1) # Atualiza a barra de progresso
-
-        # ------------------
-        # NON-MAXIMUM SUPPRESSION (NMS)
-        # -----------------
-
-        # Basicamente, o NMS remove caixas que se sobrepõem demasiado, mantendo apenas a mais confiável.
-        # Isto ajuda a reduzir múltiplas deteções do mesmo objeto, tornando os resultados melhores.
-
-        if len(all_boxes) > 0: # Se houver deteções e houver mais que uma caixa para processar
-            boxes_tensor = torch.tensor(all_boxes, dtype=torch.float32) # Converter para tensor
-            scores_tensor = torch.tensor(all_scores, dtype=torch.float32) # Converter para tensor
-            keep_indices = nms(boxes_tensor, scores_tensor, IOU_THRESHOLD) # Aplicar NMS
-            tqdm.write(f" -> {filename}: {len(keep_indices)} deteções após NMS.")
-
-            # ------------------
-            # Desenhar caixas finais após NMS
-            # ------------------
-
-            for idx in keep_indices: # Iterar sobre as caixas mantidas após NMS
-                idx = idx.item() # Converter para int
-                box = all_boxes[idx] # Caixa [x1, y1, x2, y2]
-                label = all_labels[idx] # Label da caixa
-                score = all_scores[idx] # Score da caixa
-                final_preds.append((all_boxes[idx], all_labels[idx])) # Guardar para avaliação
-                
-                x1, y1, x2, y2 = box # Coordenadas da caixa
-                
-                draw.rectangle([x1, y1, x2, y2], outline="red", width=1) # Desenhar a caixa
-            else:
-                pass # Nenhuma caixa para desenhar
-
-        # ------------------
-        # Avaliação das Deteções
-        # ------------------
-
+        # Avaliação
         if filename in ground_truth:
             gt_boxes = ground_truth[filename]
             total_gt += len(gt_boxes)
-            
-            for (p_box, p_label) in final_preds:
-                match = False
-                for g_box in gt_boxes:
-                    # g_box[:4] são as coords, g_box[4] é a label real
-                    if p_label == g_box[4] and calculate_iou(p_box, g_box[:4]) > 0.5:
-                        match = True
-                        break
-                if match: total_tp += 1
-                else: total_fp += 1
+            matched_gt = [False] * len(gt_boxes)
+            for p_box, p_lbl in final_preds:
+                found = False
+                for i, g_box in enumerate(gt_boxes):
+                    # IOU > 0.3 é suficiente para considerar que encontrou o dígito
+                    if p_lbl == g_box[4] and calculate_iou(p_box, g_box[:4]) > 0.3:
+                        if not matched_gt[i]:
+                            matched_gt[i] = True
+                            total_tp += 1
+                            found = True
+                            break
+                if not found: total_fp += 1
 
-        # Guardar imagem individual
-        save_path = os.path.join(OUTPUT_DIR, f"res_{filename}")
-        draw_img.save(save_path)
-        
-        # [NOVO] Adicionar à lista para a grelha
-        grid_images.append(np.array(draw_img))
-        
-        # Título da imagem na grelha
-        title_text = f"{filename}\nPred: {len(final_preds)}"
-        if filename in ground_truth:
-            title_text += f" | Real: {len(ground_truth[filename])}"
-        grid_titles.append(title_text)
+        draw_img.save(os.path.join(output_dir, f"res_{filename}"))
+        if len(grid_images) < 9:
+            grid_images.append(np.array(draw_img))
+            grid_titles.append(f"{filename}\nDet: {len(final_preds)}")
 
+    precision = total_tp / (total_tp + total_fp) if (total_tp + total_fp) > 0 else 0
+    recall = total_tp / total_gt if total_gt > 0 else 0
+    f1 = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
+    
+    return {"precision": precision, "recall": recall, "f1": f1, "tp": total_tp, "fp": total_fp, "gt": total_gt, "imgs": grid_images, "titles": grid_titles}
 
-    else:
-        tqdm.write(f" -> {filename}: Nenhuma deteção encontrada.") # Nenhuma caixa para desenhar
+def main():
+    CHECKPOINT_PATH = './experiments/checkpoint.pkl'
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = load_trained_model(CHECKPOINT_PATH, device)
+    
+    transform = transforms.Compose([
+        transforms.Resize((28, 28)),
+        transforms.ToTensor(),
+        transforms.Normalize((0.1307,), (0.3081,))
+    ])
 
-        save_path = os.path.join(OUTPUT_DIR, f"res_{filename}") # Caminho para salvar a imagem com deteções
-        draw_img.save(save_path) # Salvar a imagem com as caixas desenhadas
+    LIMITAR_TESTE = None # Definir para um número para limitar o número de imagens testadas
 
-    print("\n--- Processo Concluído ---")
-    print("\n--- PERFORMANCE ---")
-    if total_gt > 0:
-        precision = total_tp / (total_tp + total_fp) if (total_tp + total_fp) > 0 else 0
-        recall = total_tp / total_gt
-        f1 = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
-        
-        print(f"Total Dígitos Reais (GT): {total_gt}")
-        print(f"Total Deteções Feitas:    {total_tp + total_fp}")
-        print(f"Acertos (True Pos):       {total_tp}")
-        print(f"Erros (False Pos):        {total_fp}")
-        print("-" * 20)
-        print(f"PRECISÃO: {precision:.2%} (Confiança)")
-        print(f"RECALL:   {recall:.2%} (Cobertura)")
-        print(f"F1-SCORE: {f1:.2f}")
-    else:
-        print("Não foi possível calcular métricas (labels.txt vazio ou não encontrado).")
-    # [NOVO] MOSTRAR GRELHA
-    visualize_grid(grid_images, grid_titles)
-    print(f"Resultados salvos em: {OUTPUT_DIR}")
+    tasks = [
+        {"name": "Versão A", "images_dir": "./Dataset_Cenas_Versão_A/test/images/", "labels_file": "./Dataset_Cenas_Versão_A/test/labels.txt", "output_dir": "./results_sliding_window/Versao_A"},
+        {"name": "Versão D", "images_dir": "./Dataset_Cenas_Versão_D/test/images/", "labels_file": "./Dataset_Cenas_Versão_D/test/labels.txt", "output_dir": "./results_sliding_window/Versao_D"}
+    ]
+
+    results_summary = []
+    for task in tasks:
+        res = process_version(task, model, device, transform, limit=LIMITAR_TESTE)
+        results_summary.append((task['name'], res))
+
+    # --- RELATÓRIO FINAL ---
+    print("\n" + "="*45)
+    print("        RELATÓRIO FINAL DE MÉTRICAS")
+    print("="*45)
+    for name, res in results_summary:
+        print(f"\n>>> {name.upper()}:")
+        print(f"  - Total Real (GT):     {res['gt']}")
+        print(f"  - Acertos (TP):        {res['tp']}")
+        print(f"  - Erros (FP):           {res['fp']}")
+        print(f"  - Precisão:            {res['precision']:.2%}")
+        print(f"  - Recall:              {res['recall']:.2%}")
+        print(f"  - F1-Score:            {res['f1']:.4f}")
+    print("\n" + "="*45)
+
+    for name, res in results_summary:
+        visualize_grid(res['imgs'], res['titles'])
 
 if __name__ == '__main__':
     main()
