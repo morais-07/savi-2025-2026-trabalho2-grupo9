@@ -260,10 +260,6 @@ class Trainer():
         # TAREFA 1: Avaliação com Sklearn (NOVO)
         # -----------------------------------------
         
-        # ------------------------------------------
-        # Matriz de Confusão
-        # -----------------------------------------
-        cm = confusion_matrix(gt_classes, predicted_classes)
 
         # -----------------------------------------
         # Relatório de Classificação (Precision, Recall, F1-Score)
@@ -276,6 +272,7 @@ class Trainer():
         # -----------------------------------------
         # Desenhar a Matriz de Confusão
         # -----------------------------------------
+        cm = confusion_matrix(gt_classes, predicted_classes)
         plt.figure(2, figsize=(10, 8)) # Cria a figura 
         class_names = [str(i) for i in range(10)] # Classes 0-9
         
@@ -307,23 +304,3 @@ class Trainer():
             json.dump(report_dict, f, indent=4)
         
         print("Estatísticas guardadas em statistics.json")
-
-    def getPrecisionRecall(self, TPs, FPs, FNs):
-
-        # Fórmulas dadas na aula para precisão e recall
-
-        # Precision
-        den = TPs + FPs
-        if den == 0:
-            precision = None
-        else:
-            precision = TPs / (TPs + FPs)
-
-        # Recall
-        den = TPs + FNs
-        if den == 0:
-            recall = None
-        else:
-            recall = TPs / (TPs + FNs)
-
-        return precision, recall

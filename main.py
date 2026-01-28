@@ -1,31 +1,14 @@
-#!/usr/bin/env python3
-# shebang line for linux / mac
-
-import glob
-from html import parser
 import os
-from random import randint
-import shutil
 import signal
-# from matplotlib import pyplot as plt
-from matplotlib import pyplot as plt
-import numpy as np
 import argparse
-
 import torch
-# NOVO (Aponta para o teu ficheiro novo):
 from dataset_new import Dataset
-
-from torchvision import transforms
 from model import ModelBetterCNN, ModelFullyconnected, ModelConvNet, ModelConvNet3
 from trainer import Trainer
-from datetime import datetime
-
 
 def sigintHandler(signum, frame):
     print('SIGINT received. Exiting gracefully.')
     exit(0)
-
 
 def main():
 

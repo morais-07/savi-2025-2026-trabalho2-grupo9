@@ -1,13 +1,5 @@
-import glob
-import os
-import zipfile
-import numpy as np
-import requests
 import torch
-from colorama import init as colorama_init
-from colorama import Fore, Style
-from PIL import Image
-from torchvision import transforms, datasets # New datasets import
+from torchvision import transforms, datasets
 
 class Dataset(torch.utils.data.Dataset):
 
@@ -52,8 +44,9 @@ class Dataset(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         # ----------------------------
-        # NOVO: Obter dados do torchvision
+        # Obter dados do torchvision
         # ----------------------------
+
         # O dataset do torch devolve (imagem, label_inteiro)
         # A imagem já vem transformada em Tensor por causa do self.transform lá em cima
         image_tensor, label_index = self.data_source[idx]
@@ -67,17 +60,5 @@ class Dataset(torch.utils.data.Dataset):
         label[label_index] = 1  # define o índice correspondente ao dígito como 1
 
         label_tensor = torch.tensor(label, dtype=torch.float)
-
-        # ----------------------------
-        # ANTIGO (Comentado)
-        # ----------------------------
-        # label_index = int(self.labels[idx])
-        # label = [0]*10 
-        # label[label_index] = 1 
-        # label_tensor = torch.tensor(label, dtype=torch.float)
-
-        # image_filename = self.image_filenames[idx]
-        # image = Image.open(image_filename).convert('L') 
-        # image_tensor = self.to_tensor(image)
 
         return image_tensor, label_tensor
