@@ -237,7 +237,7 @@ The script `main_dataset_stats.py` was used to validate the quality of the gener
   <img src="Photo_README/Dataset_Cenas_Versão_D.png" alt="Task2 Version D" width="700"/>
 </p>
 <p align="center">
-  <img src="Photo_README/Estatísticas_Dataset_Cenas_Versão_D.png" alt="Task2 Version D" width="600"/>
+  <img src="Photo_README/Estatísticas_Dataset_Cenas_Versão_D_.png" alt="Task2 Version D" width="600"/>
 </p>
 
 * **Complexity:** Visual inspection confirms multiple digits per image with varying scales and random quantities.
