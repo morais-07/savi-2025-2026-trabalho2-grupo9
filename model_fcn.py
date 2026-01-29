@@ -23,35 +23,31 @@ class ModelBetterFCN(nn.Module):
         self.bn3 = nn.BatchNorm2d(128) 
         #Mantém-se 32x32
 
-        #Comum 
-        self.fc_features = nn.Conv2d(128,256, kernel_size=3, padding=1) #256 características complexas
+        # Classificador FCN, em vez de 'achatarmos' a imagem num vetor longo, a rede mantém a info espacial
+        self.fc1_conv = nn.Conv2d(128,256, kernel_size=3, padding=1) #256 características complexas
         self.dropout = nn.Dropout(0.5) #no treino, desliga-se 50% dos neurónios , força a rede a ser mais robusta e a não 'decorar'
         
-        #Classificador (11 classes)
-        self.cls_head = nn.Conv2d(256, 11,kernel_size=1) #11 classes, classificador pontual 
-        #Regressão Bbox (4 valores: x, y, w, h)
-        self.reg_head = nn.Conv2d(256, 4, kernel_size=1)
+        self.fc2_conv = nn.Conv2d(256, 11,kernel_size=1) #11 classes, classificador pontual 
 
         print(f'ModelBetterFCN initialized with {self.getNumberOfParameters()} parameters.')
     
     #organização do fluxo
     def forward(self, x):
-        #Características
+        # Bloco 1
         x = self.pool1(F.relu(self.bn1(self.conv1(x))))
+    
+        # Bloco 2
         x = self.pool2(F.relu(self.bn2(self.conv2(x))))
+        
+        # Bloco 3
         x = F.relu(self.bn3(self.conv3(x)))
 
-        #Camadas Comum
-        x = F.relu(self.fc_features(x))
+        #Camadas Densas convertidas em Convoluções
+        x = F.relu(self.fc1_conv(x))
         x = self.dropout(x)
-
-        #Saída Mapa de Classificação [batch,11,32,32]
-        cls_map = self.cls_head(x)
-
-        #Saída Mapa de Regressão [Batch, 4, 32, 32]
-        reg_map = self.reg_head(x)
-
-        return cls_map, reg_map
+        y = self.fc2_conv(x) #geração final do mapa de 11 camadas
+        #devolve um tensor: [batch,11,32,32]
+        return y
     
     def getNumberOfParameters(self):
         return sum(p.numel() for p in self.parameters() if p.requires_grad)
