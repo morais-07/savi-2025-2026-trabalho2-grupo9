@@ -10,7 +10,7 @@ import os
 import glob
 import json # Adicionado para manipulação de ficheiros JSON
 from tqdm import tqdm
-from model import ModelBetterCNN 
+from Tarefa_1.model import ModelBetterCNN 
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import classification_report # Adicionado para gerar o relatório detalhado

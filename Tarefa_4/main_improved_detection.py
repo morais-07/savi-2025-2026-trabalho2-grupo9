@@ -1,8 +1,8 @@
 import torch
 import os
-from model_fcn import ModelBetterFCN
-from dataset_fcn import SceneDatasetA, SceneDatasetD
-from trainer_fcn import TrainerFCN
+from Tarefa_4.model_fcn import ModelBetterFCN
+from Tarefa_4.dataset_fcn import SceneDatasetA, SceneDatasetD
+from Tarefa_4.trainer_fcn import TrainerFCN
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt

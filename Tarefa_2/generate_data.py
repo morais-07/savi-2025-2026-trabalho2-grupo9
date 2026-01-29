@@ -9,7 +9,7 @@ from colorama import Fore, Style
 from PIL import Image
 from torchvision import transforms
 import argparse
-from dataset_new import Dataset
+from Tarefa_1.dataset_new import Dataset
 import random
 
 

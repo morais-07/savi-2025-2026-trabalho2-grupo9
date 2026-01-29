@@ -2,9 +2,9 @@ import os
 import signal
 import argparse
 import torch
-from dataset_new import Dataset
-from model import ModelBetterCNN, ModelFullyconnected, ModelConvNet, ModelConvNet3
-from trainer import Trainer
+from Tarefa_1.dataset_new import Dataset
+from Tarefa_1.model import ModelBetterCNN, ModelFullyconnected, ModelConvNet, ModelConvNet3
+from Tarefa_1.trainer import Trainer
 
 def sigintHandler(signum, frame):
     print('SIGINT received. Exiting gracefully.')
