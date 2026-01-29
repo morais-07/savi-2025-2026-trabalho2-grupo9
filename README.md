@@ -223,6 +223,12 @@ In the version with multiple digits per image, we prevented digits and bounding 
 The script `main_dataset_stats.py` was used to validate the quality of the generated data through:
 * **Image Mosaics:** Visualization of 9-image grids for both Version A and Version D.
 * **Statistical Data:** Analysis of class distribution, the average number of digits per image, and average digit dimensions. 
+<p align="center">
+  <img src="Photo_README/Dataset_Cenas_Versão_A.png" alt="Task2 Version A" width="450"/>
+</p>
+<p align="center">
+  <img src="Photo_README/Estatísticas_Dataset_Cenas_Versão_A.png" alt="Task2 Version A" width="450"/>
+</p>
 
 > **Nota:** Os datasets gerados servem de base para o treino da arquitetura FCN na Tarefa 4 e para os testes de robustez na Tarefa 3.
 
