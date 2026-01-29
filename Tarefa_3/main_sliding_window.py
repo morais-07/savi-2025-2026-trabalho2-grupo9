@@ -1,7 +1,7 @@
 import torch
 
-torch.backends.nnpack.enabled = False
-
+#torch.backends.nnpack.enabled = False
+import sys
 import torch.nn.functional as F
 from torchvision import transforms
 from torchvision.ops import nms 
@@ -10,7 +10,8 @@ import os
 import glob
 import json # Adicionado para manipulação de ficheiros JSON
 from tqdm import tqdm
-from Tarefa_1.model import ModelBetterCNN 
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from Tarefa_1.model import ModelBetterCNN
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import classification_report # Adicionado para gerar o relatório detalhado
@@ -298,7 +299,7 @@ def main():
     # Carregar o modelo treinado
     # ------------------------------
 
-    CHECKPOINT_PATH = './experiments/checkpoint.pkl'
+    CHECKPOINT_PATH = '../experiments/checkpoint.pkl'
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = load_trained_model(CHECKPOINT_PATH, device) # Carrega o modelo treinado
     
@@ -308,15 +309,15 @@ def main():
         transforms.Normalize((0.1307,), (0.3081,))
     ])
 
-    LIMITAR_TESTE = 10 # Definir para um número para limitar o número de imagens testadas
+    LIMITAR_TESTE = 100 # Definir para um número para limitar o número de imagens testadas
 
     # ------------------------------
     # Definir tarefas para cada versão
     # ------------------------------
 
     tasks = [
-        {"name": "Versão A", "images_dir": "./Dataset_Cenas_Versão_A/test/images/", "labels_file": "./Dataset_Cenas_Versão_A/test/labels.txt", "output_dir": "./results_sliding_window/Versao_A"},
-        {"name": "Versão D", "images_dir": "./Dataset_Cenas_Versão_D/test/images/", "labels_file": "./Dataset_Cenas_Versão_D/test/labels.txt", "output_dir": "./results_sliding_window/Versao_D"}
+        {"name": "Versão A", "images_dir": "../Dataset_Cenas_Versão_A/test/images/", "labels_file": "../Dataset_Cenas_Versão_A/test/labels.txt", "output_dir": "./results_sliding_window/Versao_A"},
+        {"name": "Versão D", "images_dir": "../Dataset_Cenas_Versão_D/test/images/", "labels_file": "../Dataset_Cenas_Versão_D/test/labels.txt", "output_dir": "./results_sliding_window/Versao_D"}
     ]
 
     # ------------------------------
