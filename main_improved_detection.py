@@ -130,7 +130,7 @@ def testar_e_guardar_resultados(model, dataset, device, folder_name="resultados"
         #guardar algumas imagens
         if i < 5:
             img_orig = cv2.cvtColor(img_out, cv2.COLOR_GRAY2BGR)
-            comparison = np.hstack((img_orig, heatmap_color, img_color))
+            comparison = np.hstack((img_orig, heatmap_color, img_color))       #comparação entre imagem original, heat map predicted pela FCN e imagem com bounding box, ideal para perceber que a rede identificou as classes no sítio certo
             cv2.imwrite(f"{folder_name}/resultado_completo_{i}.png", comparison)
             cv2.imwrite(f"{folder_name}/resultado_{i}.png", img_color)
 
