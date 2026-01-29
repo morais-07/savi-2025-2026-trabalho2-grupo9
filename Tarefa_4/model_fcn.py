@@ -47,7 +47,7 @@ class ModelBetterFCN(nn.Module):
         x = self.dropout(x)
         y = self.fc2_conv(x) #geração final do mapa de 11 camadas
         #devolve um tensor: [batch,11,32,32]
-        return y
+        return y                                  
     
     def getNumberOfParameters(self):
         return sum(p.numel() for p in self.parameters() if p.requires_grad)
